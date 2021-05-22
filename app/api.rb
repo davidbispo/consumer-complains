@@ -1,10 +1,19 @@
 require 'sinatra/base'
-require 'json'
-
 module ConsumerComplaints
   class API < Sinatra::Base
+    require 'json'
+    require 'net/http'
+    require "sinatra/reloader" if development?
+    require 'byebug' if development?
+
+    configure :development do
+      register Sinatra::Reloader
+    end
+    set :server, 'puma'
+
     ESHOST = Sinatra::Base.development? ? 'elasticsearch' : 'https://sdasdaosidj.io'
-    PATH = '/complains/_search?pretty=true'
+    PATH = '/student2/_search'
+    # PATH = '/complains/_search?pretty=true'
 
     get '/' do
       content_type :json
@@ -37,46 +46,43 @@ module ConsumerComplaints
     end
 
     post '/complains/search' do
-      request.body.rewind
-      @request_payload = JSON.parse(request.body.read)
+      # request.body.rewind
+      # @request_payload = JSON.parse(request.body.read)
 
       @url =  "http://#{ESHOST}#{PATH}"
-      permitted = ["city", "distance", "lat", "long", "state", "title"]
+      # permitted = ["city", "distance", "lat", "long", "state", "title"]
 
-      @body = @request_payload.select { |k,v| permitted.include?(key) }
-      send_request
-    end
+      # @body = @request_payload.select { |k,v| permitted.include?(key) }
+      http = http_connection
 
-    def send_request
-      uri = URI.parse(@url)
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true unless Sinatra::Base.development?
+      request = Net::HTTP::Post.new(@uri, {'Content-Type' => 'application/json'})
+      request.body = request_body.to_json
 
-      request = Net::HTTP::Post.new(uri, {'Content-Type' => 'application/json'})
-
-      request.body = search_body.to_json
       response = http.request(request)
-
-      return false unless response.code == 200
-      response.body
+      return response.read_body if response.code == "200"
+      false
     end
 
-    def search_body
+    def http_connection
+      @uri = URI.parse(@url)
+      http = Net::HTTP.new(@uri.host, 9200)
+      http.use_ssl = true unless Sinatra::Base.development?
+      return http
+    end
+
+    def request_body()
       return {
-        query: {
-          bool: {
-            filter: [
-              { term: { title: "david"} },
+        "query"=>{
+          "bool"=>{
+            "filter"=>[
               {
-                geo_distance:
-                {
-                  distance: "100km",
-                  location:
-                  {
-                    lat: 40.12,
-                    lon: -71.30,
-                    city: "city",
-                    state: "state"
+                "term"=>{"name"=>"david"}
+              }, {"geo_distance"=>
+              {
+                "distance"=>"100km",
+                "location"=>{
+                  "lat"=>40.12,
+                  "lon"=>-71.3
                   }
                 }
               }

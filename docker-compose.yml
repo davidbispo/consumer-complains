@@ -1,6 +1,8 @@
 version: "3"
 services:
   elasticsearch:
+    logging:
+      driver: "none"
     image: docker.elastic.co/elasticsearch/elasticsearch:7.10.1
     environment:
       - bootstrap.memory_lock=true
@@ -48,12 +50,12 @@ services:
     restart: always
     working_dir: /app
     build: .
-    entrypoint: /app/entrypoint.sh
+    command: bundle exec rackup -d -p 9292 -o 0.0.0.0
     volumes:
       - .:/app
       - ~/.bash_history:/root/.bash_history
     ports:
-      - "3001:3001"
+      - 9292:9292
     depends_on:
       - elasticsearch
 volumes:
