@@ -1,4 +1,7 @@
 require 'sinatra/base'
+require_relative './elastic_client'
+require_relative './services'
+
 module ConsumerComplaints
   class API < Sinatra::Base
     require 'json'
@@ -11,9 +14,10 @@ module ConsumerComplaints
     end
     set :server, 'puma'
 
-    ESHOST = Sinatra::Base.development? ? 'elasticsearch' : 'https://sdasdaosidj.io'
-    PATH = '/student2/_search'
-    # PATH = '/complains/_search?pretty=true'
+    before do
+      @request.body.rewind
+      @request_payload = JSON.parse(request.body.read) rescue nil
+    end
 
     get '/' do
       content_type :json
@@ -21,75 +25,93 @@ module ConsumerComplaints
     end
 
     get '/complains/' do
-      #get all complains
-      return { status: "ok" }
+      begin
+        response = Services::list_all_complaints(
+          params["offset"],
+          params["per_page"],
+          params["sort"]
+        )
+        return response.read_body if response.code == "200"
+      rescue => e
+        halt 500, e.message
+      end
+      halt 400
     end
 
     get '/complains/:id' do
-      #get specific complain
-      return { status: "ok" }
+      begin
+        response = Services::get_one_complaint(params["id"])
+        return response.read_body if response.code == "200"
+      rescue => e
+        halt 422, e.message
+      end
+      halt 500
     end
 
     post '/complains/' do
-      #adds new complain
-      return { status: "ok" }
+      required = ["description", "location", "title"]
+      valid_required = @request_payload.keys.sort == required
+
+      halt 422 unless valid_required
+
+      begin
+        response = Services::create_complaint(
+          @request_payload["description"],
+          @request_payload["title"],
+          @request_payload["location"]
+        )
+        if response.code == "201"
+          status 201
+          return JSON.parse(response.read_body)["_id"]
+        end
+      rescue => e
+        halt 422
+      end
+      halt 500
     end
 
     patch '/complains/:id' do
-      #updates complain
-      return { status: "ok" }
+      begin
+        response = Services::update_complaint(
+          params["id"],
+          @request_payload['description'],
+          @request_payload['title'],
+          @request_payload['location']
+        )
+        return status 200 if response.code == "200"
+      rescue => e
+        halt 422, e.message
+      end
+      halt 500
     end
 
     put '/complains/:id' do
-      #idempotently adds new complain
-      return { status: "ok" }
+      required = ["description", "location", "title"]
+      valid_required = @request_payload.keys.sort == required
+
+      halt 422 unless valid_required
+      begin
+        response = Services::replace_complaint(
+          params['id'],
+          @request_payload["description"],
+          @request_payload["title"],
+          @request_payload["location"]
+        )
+        return status 200 if response.code == "200"
+      rescue => e
+        halt 422, e.message
+      end
+      halt 500
     end
 
     post '/complains/search' do
-      # request.body.rewind
-      # @request_payload = JSON.parse(request.body.read)
+      permitted = ["city", "distance", "lat", "long", "state", "title", "description"]
+      @body = @request_payload.select { |k,v| permitted.include?(k) }
 
-      @url =  "http://#{ESHOST}#{PATH}"
-      # permitted = ["city", "distance", "lat", "long", "state", "title"]
+      response = Services::search_complaint(@body)
 
-      # @body = @request_payload.select { |k,v| permitted.include?(key) }
-      http = http_connection
-
-      request = Net::HTTP::Post.new(@uri, {'Content-Type' => 'application/json'})
-      request.body = request_body.to_json
-
-      response = http.request(request)
       return response.read_body if response.code == "200"
-      false
-    end
-
-    def http_connection
-      @uri = URI.parse(@url)
-      http = Net::HTTP.new(@uri.host, 9200)
-      http.use_ssl = true unless Sinatra::Base.development?
-      return http
-    end
-
-    def request_body()
-      return {
-        "query"=>{
-          "bool"=>{
-            "filter"=>[
-              {
-                "term"=>{"name"=>"david"}
-              }, {"geo_distance"=>
-              {
-                "distance"=>"100km",
-                "location"=>{
-                  "lat"=>40.12,
-                  "lon"=>-71.3
-                  }
-                }
-              }
-            ]
-          }
-        }
-      }
+      halt 422
     end
   end
 end
