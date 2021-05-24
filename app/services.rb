@@ -20,19 +20,24 @@ class Services
       response = @client.perform
     end
 
-    def list_all_complaints(offset, per_page, sort)
+    def list_all_complaints(offset, per_page, sort_field, sort_order)
       url =  "#{ES_HOST}/complains/_search"
       @client = ElasticClient.new(
         url,
         Net::HTTP::Get,
         {
-          # from: offset,
-          # size: per_page,
-          # sort:[
-          #   {
-          #     id:
-          #       { order: "asc" }
-          #   }]
+          from: offset,
+          size: per_page,
+          sort: [
+            {
+              "#{sort_order}" => {
+                order: sort_field
+              }
+            }
+          ],
+          query: {
+            match_all: {}
+          }
         })
       response = @client.perform
     end
@@ -94,7 +99,55 @@ class Services
     end
 
     def search_body(search_hash)
-      {}
+      geodistance_args = search_hash.select { |k,v| ["lat", "lon", "distance"].include?(k) }
+
+      text_args = ["title", "description", "city", "state", "country"]
+      text_search_args = search_hash.select { |k,v| text_args.include?(k) }
+
+      body = {
+        "query": {
+          "bool": {
+            "filter": [
+            ]
+          }
+        }
+      }
+      body[:query][:bool][:filter] << geo_distance_config(*geodistance_args) unless geodistance_args.empty?
+      body[:query][:bool][:filter] += word_match_config(text_search_args) unless text_search_args.empty?
+      body
+    end
+
+    def geo_distance_config(distance, lat, lon)
+      {
+        "geo_distance": {
+          "distance": distance.to_s,
+          "location.coordinates": {
+            "lat": lat.to_s,
+            "lon": lon.to_s
+          }
+        }
+      }
+    end
+
+    def word_match_config(args)
+      base = []
+      args.each do |key,value|
+        location_keywords = ["city", "state", "country"]
+        key = "location.#{key}" if location_keywords.include?(key)
+        base <<
+        {
+          "bool": {
+            "should": [
+              {
+                "match": {
+                  "#{key}" => "#{value}"
+                }
+              }
+            ]
+          }
+        }
+      end
+      base
     end
   end
 end
