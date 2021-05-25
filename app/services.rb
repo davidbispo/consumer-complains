@@ -1,4 +1,5 @@
 require_relative './elastic_client'
+require_relative './utils'
 
 class Services
   ES_HOST = Sinatra::Base.development? ? "http://elasticsearch" : "https://elasticsearch"
@@ -21,29 +22,25 @@ class Services
     end
 
     def list_all_complaints(offset, per_page, sort_field, sort_order)
+      obj = {}
+      if offset || per_page
+        obj = pagination_config(offset, per_page)
+      end
+      if sort_field && sort_order
+        obj[:sort] = sort_config(sort_field, sort_order)
+      end
+      obj[:query] = { match_all: {} }
       url =  "#{ES_HOST}/complains/_search"
       @client = ElasticClient.new(
         url,
         Net::HTTP::Get,
-        {
-          from: offset,
-          size: per_page,
-          sort: [
-            {
-              "#{sort_order}" => {
-                order: sort_field
-              }
-            }
-          ],
-          query: {
-            match_all: {}
-          }
-        })
+        obj
+      )
       response = @client.perform
     end
 
-    def get_one_complaint(complaint_id)
-      url =  "#{ES_HOST}/complains/_doc/#{complaint_id}"
+    def get_one_complaint(complain_id)
+      url =  "#{ES_HOST}/complains/_doc/#{complain_id}"
       @client = ElasticClient.new(url, Net::HTTP::Get, {})
       response = @client.perform
     end
@@ -67,14 +64,19 @@ class Services
     end
 
     def replace_complaint(complain_id, description, title, location)
-      url =  "#{ES_HOST}/complains/_doc/#{complain_id}"
       body = create_body(description, title, location)
-      @client = ElasticClient.new(url, Net::HTTP::Put, body)
-      response = @client.perform
+      response = get_one_complaint(complain_id)
+      if response.code != "404"
+        url =  "#{ES_HOST}/complains/_doc/#{complain_id}"
+        @client = ElasticClient.new(url, Net::HTTP::Put, body)
+        return @client.perform
+      else
+        return self.create_complaint(description, title, location)
+      end
     end
 
-    def destroy_complaint(complaint_id)
-      url =  "#{ES_HOST}/complains/#{complain_id}"
+    def destroy_complaint(complain_id)
+      url =  "#{ES_HOST}/complains/_doc/#{complain_id}"
       @client = ElasticClient.new(url, Net::HTTP::Delete, {})
       response = @client.perform
     end
@@ -85,7 +87,8 @@ class Services
       {
         title: title,
         description: description,
-        location: location
+        location: location,
+        created_at: Time.now.strftime("%Y/%m/%d %H:%M:%S")
       }
     end
 
@@ -104,6 +107,13 @@ class Services
       text_args = ["title", "description", "city", "state", "country"]
       text_search_args = search_hash.select { |k,v| text_args.include?(k) }
 
+      pagination_args = ["offset", "per_page"]
+      pagination_search_args = search_hash.select { |k,v| pagination_args.include?(k) }
+
+      sort_args = ["sort_field", "sort_order"]
+      sort_search_args = search_hash.select { |k,v| sort_args.include?(k) }
+
+
       body = {
         "query": {
           "bool": {
@@ -114,6 +124,14 @@ class Services
       }
       body[:query][:bool][:filter] << geo_distance_config(*geodistance_args) unless geodistance_args.empty?
       body[:query][:bool][:filter] += word_match_config(text_search_args) unless text_search_args.empty?
+
+      if !pagination_search_args.empty?
+        argz = [pagination_search_args["offset"], pagination_search_args["per_page"]]
+        body = body.merge(pagination_config(*argz))
+      end
+      if sort_search_args.length == 2
+        body[:sort] = sort_config(sort_search_args["sort_field"], sort_search_args["sort_order"])
+      end
       body
     end
 
@@ -148,6 +166,17 @@ class Services
         }
       end
       base
+    end
+
+    def pagination_config(offset=nil, per_page=nil)
+      base = {}
+      base[:from] = offset if offset
+      base[:size] = per_page if per_page
+      base
+    end
+
+    def sort_config(sort_field, sort_order)
+      [ { "#{sort_field}" => { order: sort_order } } ]
     end
   end
 end

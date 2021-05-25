@@ -11,44 +11,52 @@ module ConsumerComplaints
 
     configure :development do
       register Sinatra::Reloader
+      also_reload './services'
+      also_reload './elastic_client'
+      also_reload './utils'
     end
     set :server, 'puma'
 
     before do
-      @request.body.rewind
-      @request_payload = JSON.parse(request.body.read) rescue nil
+      if @request.content_type == 'application/json'
+        @request.body.rewind
+        @request_payload = JSON.parse(request.body.read) rescue nil
+      end
     end
 
     get '/' do
-      content_type :json
       return { status: "ok" }.to_json
     end
 
-    get '/complains/' do
+    get '/complains' do
+      content_type :json
       begin
-        response = Services::list_all_complaints(
+        args = [
           params["offset"],
           params["per_page"],
-          params["sort"]
-        )
-        return response.read_body if response.code == "200"
+          params["sort_field"],
+          params["sort_order"]
+        ]
+        response = Services::list_all_complaints(*args)
+        return Utils::format_elastic_response(response.read_body) if response.code == "200"
       rescue => e
         halt 500, e.message
       end
       halt 400
     end
 
-    get '/complains/:id' do
+    get '/complain/:id' do
+      content_type :json
       begin
         response = Services::get_one_complaint(params["id"])
-        return response.read_body if response.code == "200"
+        return Utils::format_elastic_response(response.read_body) if response.code == "200"
       rescue => e
         halt 422, e.message
       end
       halt 500
     end
 
-    post '/complains/' do
+    post '/complains' do
       required = ["description", "location", "title"]
       valid_required = @request_payload.keys.sort == required
 
@@ -97,7 +105,10 @@ module ConsumerComplaints
           @request_payload["title"],
           @request_payload["location"]
         )
-        return status 200 if response.code == "200"
+        if response.code == "201" || response.code == "200"
+          status 201
+          return JSON.parse(response.read_body)["_id"]
+        end
       rescue => e
         halt 422, e.message
       end
@@ -105,13 +116,31 @@ module ConsumerComplaints
     end
 
     post '/complains/search' do
-      permitted = ["city", "distance", "lat", "long", "state", "title", "description"]
+      content_type :json
+      permitted = [
+        "city",
+        "distance",
+        "lat",
+        "long",
+        "state",
+        "title",
+        "description",
+        "offset",
+        "per_page",
+        "sort_field",
+        "sort_order"
+      ]
       @body = @request_payload.select { |k,v| permitted.include?(k) }
 
       response = Services::search_complaint(@body)
-
-      return response.read_body if response.code == "200"
+      return Utils::format_elastic_response(response.read_body) if response.code == "200"
       halt 422
+    end
+
+    delete '/complain/:id' do
+      response = Services::destroy_complaint(params[:id])
+      status 201 if response.code == "200"
+      halt 400
     end
   end
 end
