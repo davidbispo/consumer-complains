@@ -7,7 +7,6 @@ module ConsumerComplaints
     require 'json'
     require 'net/http'
     require "sinatra/reloader" if development?
-    require 'byebug' if development?
 
     configure :development do
       register Sinatra::Reloader
@@ -53,6 +52,7 @@ module ConsumerComplaints
       rescue => e
         halt 422, e.message
       end
+      halt 404 if response.code == '404'
       halt 500
     end
 
@@ -139,7 +139,7 @@ module ConsumerComplaints
 
     delete '/complain/:id' do
       response = Services::destroy_complaint(params[:id])
-      status 201 if response.code == "200"
+      return status 200 if response.code == "200"
       halt 400
     end
   end

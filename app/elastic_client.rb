@@ -8,7 +8,7 @@ class ElasticClient
   def perform
     @uri = URI.parse(@url)
     http = Net::HTTP.new(@uri.host, 9200)
-    http.use_ssl = true unless Sinatra::Base.development?
+    http.use_ssl = true unless Sinatra::Base.development? || Sinatra::Base.test?
 
     request = @request_class.new(@uri, {'Content-Type' => 'application/json'})
     request.body = @body.to_json
