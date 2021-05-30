@@ -3,8 +3,6 @@ require_relative '../../../app/services'
 require_relative '../../../app/utils'
 require_relative '../../../app/mappings'
 
-BASE_URL = '/complains'
-
 RSpec.describe 'GET /complains' do
   def app
     ConsumerComplaints::API
@@ -23,9 +21,8 @@ RSpec.describe 'GET /complains' do
   end
 
   context "no pagination and sort args" do
-
     it "expects a correct response from the API" do
-      get "#{BASE_URL}"
+      get "/complains"
       expect(last_response.status).to eq(200)
 
       parsed = JSON.parse(last_response.body)
@@ -36,10 +33,10 @@ RSpec.describe 'GET /complains' do
   context "and there are pagination options" do
     context "and only offset" do
       it "expects pagination to be correct" do
-        get "#{BASE_URL}"
+        get "/complains"
         unpaginated = JSON.parse(last_response.body)
 
-        get "#{BASE_URL}?offset=1"
+        get "/complains?offset=1"
         expect(last_response.status).to eq(200)
         paginated = JSON.parse(last_response.body)
 
@@ -49,11 +46,11 @@ RSpec.describe 'GET /complains' do
     end
     context "and only per page" do
       it "expects a correct response from the API" do
-        get "#{BASE_URL}"
+        get "/complains"
         unpaginated = JSON.parse(last_response.body)
         expect(unpaginated["results"].length).to eq(3)
 
-        get "#{BASE_URL}?per_page=2"
+        get "/complains?per_page=2"
         expect(last_response.status).to eq(200)
         paginated = JSON.parse(last_response.body)
 
@@ -62,10 +59,10 @@ RSpec.describe 'GET /complains' do
     end
     context "and offset and per page" do
       it "expects a correct response from the API" do
-        get "#{BASE_URL}"
+        get "/complains"
         unpaginated = JSON.parse(last_response.body)
 
-        get "#{BASE_URL}?offset=1&per_page=2"
+        get "/complains?offset=1&per_page=2"
         expect(last_response.status).to eq(200)
         paginated = JSON.parse(last_response.body)
 

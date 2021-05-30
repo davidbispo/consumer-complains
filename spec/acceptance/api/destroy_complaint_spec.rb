@@ -4,14 +4,14 @@ require_relative '../../../app/services'
 require_relative '../../../app/utils'
 require_relative '../../../app/mappings'
 
-BASE_URL = '/complain'
 
 RSpec.describe 'DELETE /complain/:id' do
+
   def app
     ConsumerComplaints::API
   end
 
-  before(:all) do
+  before(:each) do
     Utils::create_index('complains', Mappings::COMPLAINS) unless Utils::index_exists?('complains')
 
     @complain_ids = []
@@ -24,18 +24,16 @@ RSpec.describe 'DELETE /complain/:id' do
   end
 
   context "record is found" do
-
     it "expects a confirmation from the API" do
-      delete("#{BASE_URL}/#{@complain_ids[1]}")
+      delete("/complain/#{@complain_ids[1]}")
       expect(last_response.status).to eq(200)
     end
   end
 
   context "record is NOT found" do
-
     it "expects a 404 from the API" do
-      delete("#{BASE_URL}/_doc/sdasdasd")
-      expect(last_response.status).to eq(404)
+      delete("/complain/sdasdasd")
+      expect(last_response.status).to eq(400)
     end
   end
 

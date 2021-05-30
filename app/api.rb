@@ -121,7 +121,7 @@ module ConsumerComplaints
         "city",
         "distance",
         "lat",
-        "long",
+        "lon",
         "state",
         "title",
         "description",

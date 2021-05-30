@@ -2,8 +2,6 @@ require_relative '../../../app/api'
 require_relative '../../../app/services'
 require_relative '../../../app/utils'
 
-BASE_URL = '/complain'
-
 RSpec.describe 'GET /complain/:id' do
   def app
     ConsumerComplaints::API
@@ -15,17 +13,13 @@ RSpec.describe 'GET /complain/:id' do
       @new_complain_id = JSON.parse(Services::create_complaint(*argz).read_body)["_id"]
     end
 
-    after do
-      Services::destroy_complaint(@new_complain_id)
-    end
-
     it "expects a 200 from the API" do
-      get "#{BASE_URL}/#{@new_complain_id}"
+      get "/complain/#{@new_complain_id}"
       expect(last_response.status).to eq(200)
     end
 
     it "correctly gets the complain" do
-      get "#{BASE_URL}/#{@new_complain_id}"
+      get "/complain/#{@new_complain_id}"
       parsed = JSON.parse(last_response.body)
       expect(parsed).not_to be_empty
     end
@@ -33,7 +27,7 @@ RSpec.describe 'GET /complain/:id' do
 
   context "the complain is NOT found" do
     it "expects a 404" do
-      get "#{BASE_URL}/potato"
+      get "/complain/potato"
       expect(last_response.status).to eq(404)
     end
   end

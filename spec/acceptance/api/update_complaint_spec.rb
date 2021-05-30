@@ -3,8 +3,6 @@ require_relative '../../../app/services'
 require_relative '../../../app/utils'
 require_relative '../../../app/mappings'
 
-BASE_URL = '/complains'
-
 RSpec.describe 'POST /complains' do
   def app
     ConsumerComplaints::API
@@ -19,23 +17,22 @@ RSpec.describe 'POST /complains' do
       argz = [ complain[:description], complain[:title], complain[:location] ]
       @complain_ids << JSON.parse(Services::create_complaint(*argz).read_body)["_id"]
     end
-    sleep 2
+    sleep 1
   end
 
   context "and correct arguments are passed" do
+    before do
+      patch("/complains/#{@complain_ids[1]}", updated_complain.to_json, { 'CONTENT_TYPE' => 'application/json' })
+    end
     it "expects a correct response from the API" do
-      patch("#{BASE_URL}/#{@complain_ids[1]}", new_complain_ok.to_json, { 'CONTENT_TYPE' => 'application/json' })
       expect(last_response.status).to eq(200)
-
-      @created_complain_id = last_response.body
     end
 
     it "expects the complain to be persisted" do
-      result = Services::get_one_complaint(@created_complain_id)
-      byebug
-      parsed = JSON.parse(last_response.body)["results"][0]
+      result = Services::get_one_complaint(@complain_ids[1])
+      parsed = JSON.parse(result.body)["_source"]
 
-      expect(parsed.except('id', 'created_at')).to match(new_complain_ok)
+      expect(parsed.except('id', 'created_at')).to match(updated_complain)
     end
   end
 
@@ -48,78 +45,76 @@ RSpec.describe 'POST /complains' do
 
   def new_complains
     [{
-      "title": "First Complain",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
-      "location": {
-        "coordinates":{
-          "lat": 40.12,
-          "lon": -71.34
+      "title" => "First Complain",
+      "description" => "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
+      "location" => {
+        "coordinates" =>{
+          "lat" => 40.12,
+          "lon" => -71.34
         },
-        "city": "São Jose dos pinhais",
-        "state": "PR",
-        "country": "Brasil"
+        "city" => "São Jose dos pinhais",
+        "state" => "PR",
+        "country" => "Brasil"
       }
     },
     {
-      "title": "Second Complain",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
-      "location": {
-        "coordinates":{
-          "lat": 40.12,
-          "lon": -71.34
+      "title" => "Second Complain",
+      "description" => "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
+      "location" => {
+        "coordinates" =>{
+          "lat" => 40.12,
+          "lon" => -71.34
         },
-        "city": "São Jose dos pinhais",
-        "state": "PR",
-        "country": "Brasil"
+        "city" => "São Jose dos pinhais",
+        "state" => "PR",
+        "country" => "Brasil"
       }
     },
     {
-      "title": "Third Complain",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
-      "location": {
-        "coordinates":{
-          "lat": 40.12,
-          "lon": -71.34
+      "title" => "Third Complain",
+      "description" => "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
+      "location" => {
+        "coordinates" =>{
+          "lat" => 40.12,
+          "lon" => -71.34
         },
-        "city": "São Jose dos pinhais",
-        "state": "PR",
-        "country": "Brasil"
+        "city" => "São Jose dos pinhais",
+        "state" => "PR",
+        "country" => "Brasil"
       }
     },
   ]
   end
 
-  def updated_complain_ok
-    [{
-      "title": "Updated Complain",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
-      "location": {
-        "coordinates":{
-          "lat": 40.12,
-          "lon": -71.34
+  def updated_complain
+    {
+      "title" => "Updated Complain",
+      "description" => "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut rhoncus facilisis lectus, vitae accumsan ante fermentum vitae. Vivamus ultrices enim eget ipsum aliquet hendrerit ac rutrum purus. Donec posuere placerat diam quis feugiat. Vivamus non dolor et nulla luctus egestas quis ac lectus. Sed auctor nec leo sed commodo. Mauris eget tortor eget lectus elementum eleifend. Sed rutrum nisi et gravida bibendum.",
+      "location" => {
+        "coordinates" =>{
+          "lat" => 40.12,
+          "lon" => -71.34
         },
-        "city": "Curitiba",
-        "state": "PR",
-        "country": "Brasil"
+        "city" => "Curitiba",
+        "state" => "PR",
+        "country" => "Brasil"
       }
     }
-  ]
   end
 
   def updated_complain_nok
-    [{
-      "fname": "John",
-      "lname": "Doe",
-      "location": {
-        "coordinates":{
-          "lat": 40.12,
-          "lon": -71.34
+    {
+      "fname" => "John",
+      "lname" => "Doe",
+      "location" => {
+        "coordinates" =>{
+          "lat" => 40.12,
+          "lon" => -71.34
         },
-        "city": "Curitiba",
-        "state": "PR",
-        "country": "Brasil"
+        "city" => "Curitiba",
+        "state" => "PR",
+        "country" => "Brasil"
       }
     }
-  ]
   end
 end

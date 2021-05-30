@@ -47,7 +47,6 @@ class Services
 
     def update_complaint(complain_id, description, title, location)
       url =  "#{ES_HOST}/complains/_update/#{complain_id}"
-
       @client = ElasticClient.new(
         url,
         Net::HTTP::Post,
@@ -95,7 +94,12 @@ class Services
     end
 
     def search_body(search_hash)
-      geodistance_args = search_hash.select { |k,v| ["lat", "lon", "distance"].include?(k) }
+      geodistance_permitted = search_hash.select { |k,v| ["lat", "lon", "distance"].include?(k) }
+      geo_all = geodistance_permitted.keys.length == 3
+
+      if geo_all
+        geodistance_args = [ geodistance_permitted["distance"], geodistance_permitted["lat"], geodistance_permitted["lon"] ]
+      end
 
       text_args = ["title", "description", "city", "state", "country"]
       text_search_args = search_hash.select { |k,v| text_args.include?(k) }
@@ -115,7 +119,7 @@ class Services
           }
         }
       }
-      body[:query][:bool][:filter] << geo_distance_config(*geodistance_args) unless geodistance_args.empty?
+      body[:query][:bool][:filter] << geo_distance_config(*geodistance_args) if geo_all
       body[:query][:bool][:filter] += word_match_config(text_search_args) unless text_search_args.empty?
 
       if !pagination_search_args.empty?
