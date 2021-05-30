@@ -17,7 +17,7 @@ RSpec.describe 'GET /complains' do
       argz = [ complain[:description], complain[:title], complain[:location] ]
       @complain_ids << JSON.parse(Services::create_complaint(*argz).read_body)["_id"]
     end
-    sleep 2
+    sleep 1
   end
 
   context "no pagination and sort args" do

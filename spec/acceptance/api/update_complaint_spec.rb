@@ -17,7 +17,6 @@ RSpec.describe 'POST /complains' do
       argz = [ complain[:description], complain[:title], complain[:location] ]
       @complain_ids << JSON.parse(Services::create_complaint(*argz).read_body)["_id"]
     end
-    sleep 1
   end
 
   context "and correct arguments are passed" do

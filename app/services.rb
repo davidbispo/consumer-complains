@@ -2,7 +2,7 @@ require_relative './elastic_client'
 require_relative './utils'
 
 class Services
-  ES_HOST = Sinatra::Base.production? ? "http://elasticsearch" : "https://elasticsearch"
+  ES_HOST = Sinatra::Base.production? ? ENV['ELASTIC_HOST'] : "http://elasticsearch"
   class << self
     def search_complaint(search_hash)
       url =  "#{ES_HOST}/complains/_search"
@@ -39,6 +39,7 @@ class Services
     end
 
     def create_complaint(description, title, location)
+      Utils::create_index('complains', Mappings::COMPLAINS) unless Utils::index_exists?('complains')
       url =  "#{ES_HOST}/complains/_doc"
       body = create_body(description, title, location)
       @client = ElasticClient.new(url, Net::HTTP::Post, body)

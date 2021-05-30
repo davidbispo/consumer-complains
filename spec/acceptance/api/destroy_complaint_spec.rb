@@ -20,7 +20,6 @@ RSpec.describe 'DELETE /complain/:id' do
       argz = [ complain[:description], complain[:title], complain[:location] ]
       @complain_ids << JSON.parse(Services::create_complaint(*argz).read_body)["_id"]
     end
-    sleep 2
   end
 
   context "record is found" do
