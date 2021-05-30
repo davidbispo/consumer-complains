@@ -1,5 +1,7 @@
 # Consumer Complains API
-
+A simple Sinatra API to store and search for customer complains. It
+uses Elastic Cloud on production and regular elastic & kibana setup via
+docker-compose.
 ## How to run locally
 ```
 docker-compose up

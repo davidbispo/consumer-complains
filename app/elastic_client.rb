@@ -11,7 +11,7 @@ class ElasticClient
     request = @request_class.new(@uri, {'Content-Type' => 'application/json'})
     if Sinatra::Base.production?
       http.use_ssl = true
-      request["Authorization"] = "Basic ZWxhc3RpYzpFdVNvcDVnOGpaTHdlVmNLd0FHQkR1VHM="
+      request["Authorization"] = "Basic #{ENV['ELASTIC_PASSWORD']}"
     end
     request.body = @body.to_json if @body
     response = http.request(request)

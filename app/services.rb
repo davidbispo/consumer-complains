@@ -3,9 +3,7 @@ require_relative './utils'
 
 class Services
   class << self
-    ES_HOST = Sinatra::Base.production? ?
-    "https://i-o-optimized-deployment-0a4090.es.southamerica-east1.gcp.elastic-cloud.com:9243" :
-    "http://elasticsearch:9200"
+    ES_HOST = Sinatra::Base.production? ? ENV['ELASTIC_HOST'] : "http://elasticsearch:9200"
 
     def search_complaint(search_hash)
       url =  "#{ES_HOST}/complains/_search"
