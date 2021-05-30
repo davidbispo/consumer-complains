@@ -1,5 +1,9 @@
 require_relative './mappings'
 require_relative './elastic_client'
+
+ES_HOST = Sinatra::Base.production? ?
+  "https://i-o-optimized-deployment-0a4090.es.southamerica-east1.gcp.elastic-cloud.com:9243" :
+  "http://elasticsearch:9200"
 class Utils
   class << self
     def format_elastic_response(result)
@@ -44,7 +48,7 @@ class Utils
 
     def index_exists?(index)
       url =  "#{ES_HOST}/#{index}"
-      @client = ElasticClient.new(url, Net::HTTP::Get, {})
+      @client = ElasticClient.new(url, Net::HTTP::Get, nil)
       response = @client.perform
       return response.code == "200"
     end

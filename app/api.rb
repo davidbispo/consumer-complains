@@ -6,9 +6,11 @@ module ConsumerComplaints
   class API < Sinatra::Base
     require 'json'
     require 'net/http'
-    require "sinatra/reloader" if development?
 
     configure :development do
+      require "byebug"
+      require "sinatra/reloader"
+
       register Sinatra::Reloader
       also_reload './services'
       also_reload './elastic_client'
