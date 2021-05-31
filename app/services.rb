@@ -35,7 +35,7 @@ class Services
 
     def get_one_complaint(complain_id)
       url =  "#{ES_HOST}/complains/_doc/#{complain_id}"
-      @client = ElasticClient.new(url, Net::HTTP::Get, {})
+      @client = ElasticClient.new(url, Net::HTTP::Get, nil)
       response = @client.perform
     end
 
@@ -71,7 +71,7 @@ class Services
 
     def destroy_complaint(complain_id)
       url =  "#{ES_HOST}/complains/_doc/#{complain_id}"
-      @client = ElasticClient.new(url, Net::HTTP::Delete, {})
+      @client = ElasticClient.new(url, Net::HTTP::Delete, nil)
       response = @client.perform
     end
 

@@ -7,8 +7,7 @@ module ConsumerComplaints
     require 'json'
     require 'net/http'
 
-    configure :development do
-      require "byebug"
+    configure :development, :test do
       require "sinatra/reloader"
 
       register Sinatra::Reloader
@@ -16,6 +15,7 @@ module ConsumerComplaints
       also_reload './elastic_client'
       also_reload './utils'
     end
+
     set :server, 'puma'
 
     before do
