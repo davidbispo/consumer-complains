@@ -26,7 +26,11 @@ rspec <relative_path_to_file> # to run a specific test
 Should return confirmation of the server working
 ## API documentation
 The API documentation can be found at:
+Local calls
 ```
-
+https://www.getpostman.com/collections/025e0460a08a7462e795
 ```
-
+Production calls
+```
+https://www.getpostman.com/collections/e68b8926d45aa5529d23
+```
